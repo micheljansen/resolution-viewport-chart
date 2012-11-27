@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Viewports</title>
+    <style>
+      body {
+        background: #eee;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+      #viewports_resolutions_graph {
+        box-model: border-box;
+        width: 1000px;
+        height: 1000px;
+        border: 1px solid #999;
+        background: white;
+        position: relative;
+      }
+      #loading {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin-top: -10px;
+        font-size: 20px;
+        line-height: 20px;
+        width: 100px;
+        margin-left: -50px;
+        text-align: center;
+      }
+      .reslabels {
+        position: absolute;
+        font-size: 8px;
+      }
+      .reslabels span {
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewports_resolutions_graph">
+      <span id="loading">Loading...</span>
+      <div class="canvas"></div>
+      <div class="reslabels"></div>
+    </div>
+  </body>
+  <script src="http://d3js.org/d3.v2.js"></script>
+  <script>
+    var graph = d3.select("#viewports_resolutions_graph");
+    d3.csv("resolutions-and-viewports.csv", function(data) {
+      // beat the data into shape
+      data.forEach(function(o) {
+        o.resolution = parseInt(o.resolution);
+        o.viewport = parseInt(o.viewport);
+        o.frequency = parseFloat(o.frequency);
+      });
+
+      var groupByResolution = d3.nest().key(function(e){return e.resolution})
+      var resolutions = groupByResolution.entries(data);
+      // for debugging
+      _data = data;
+      _resolutions = resolutions;
+      _groupByResolution = groupByResolution;
+
+      d3.select("#loading").style("display", "none");
+
+      var xlabel = graph.select(".reslabels").selectAll("span").data(resolutions);
+
+      var rowHeight = 1000/resolutions.length;
+
+      xlabel.enter().append("span")
+        .style("position", "absolute")
+        //.style("top", function(e,i) {return e.key+"px"})
+        .style("top", function(e,i) { return i * rowHeight + "px"})
+        .text(function(e) { return ""+e.key })
+
+      var resdiv = graph.select(".canvas").selectAll("div").data(resolutions)
+
+      resdiv.enter().append("div")
+        .style("position", "absolute")
+        //.style("top", function(e,i) {return e.key+"px"})
+        .style("top", function(e,i) { return i * rowHeight + "px"})
+
+      var vpdiv = resdiv.selectAll("div").data(function(d,i) {return d.values; })
+
+      vpdiv.enter().append("div")
+        //.text(function(e) { console.log(e); return e.viewport;})
+        .style("position", "absolute")
+        .style("left", function(e) { return e.viewport +"px"})
+        //.text("x")
+        .style("background", "black")
+        .style("width", "1px")
+        //.style("height", function(e) { return rowHeight * e.frequency +"px"})
+        .style("height", rowHeight+"px")
+        //.style("opacity", function(e) { return e.frequency })
+        .on("mouseover", function(e) { console.log(e) })
+
+
+
+
+    });
+  </script>
+</html>
