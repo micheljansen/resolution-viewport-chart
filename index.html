@@ -28,11 +28,11 @@
       }
       .reslabels {
         position: absolute;
-        font-size: 8px;
+        font-size: 10px;
       }
       .vplabels {
         position: absolute;
-        font-size: 8px;
+        font-size: 10px;
         top: 0;
         left: 40px;
       }
@@ -43,7 +43,7 @@
       .canvas {
         position: relative;
         margin-left: 40px;
-        margin-top: 10px;
+        margin-top: 20px;
       }
     </style>
   </head>
@@ -139,7 +139,7 @@
 
       // the vertical scale
       //var y = d3.scale.linear().domain(resExtent).range([0, 500]);
-      var rowHeight = 400/binnedData.length;
+      var rowHeight = 500/binnedData.length;
       var bare_resolutions = resolutions.map(function(e) { return parseInt(e.key) });
       var y = function(res) {return bare_resolutions.indexOf(parseInt(res)) * rowHeight};
 
@@ -218,7 +218,9 @@
 
 
           // set description label
-          d3.select("#details").text(function() { console.log(vp); return (vp.relfreq*100).toFixed(1)+"%"; });
+          d3.select("#details").html(function() {
+            return "<b>"+(vp.relfreq*100).toFixed(2)+"%</b> of people with horizontal resolution <b>"+vp.resolution+"</b> have a viewport between <b>"+vp.viewport+"-"+(vp.viewport+BIN_SIZE)+"px</b>";
+          });
 
         })
         .on("mouseout", function(vp) {
