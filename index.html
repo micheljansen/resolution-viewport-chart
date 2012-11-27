@@ -32,6 +32,10 @@
       }
       .reslabels span {
       }
+      .canvas {
+        position: absolute;
+        left: 40px;
+      }
     </style>
   </head>
   <body>
@@ -61,9 +65,72 @@
 
       d3.select("#loading").style("display", "none");
 
-      var xlabel = graph.select(".reslabels").selectAll("span").data(resolutions);
+      // the range of resolutions
+      var resExtent = d3.extent(data, function(e) {return e.resolution});
+      var minRes = resExtent[0];
+      var maxRes = resExtent[1];
 
-      var rowHeight = 1000/resolutions.length;
+      // range of viewports
+      var vpExtent = d3.extent(data, function(e) {return e.viewport});
+      var minVp = vpExtent[0];
+      var maxVp = vpExtent[1];
+
+      var BIN_SIZE = 64;
+
+      // divide the range of viewports in bins of 10px
+      var bins = []
+      for(var i = 0; i <= Math.ceil(maxVp/BIN_SIZE); i++) {
+        bins.push(i*BIN_SIZE);
+      }
+
+
+
+      var binnedData = resolutions.map(function(e) {
+        // bin a single viewport
+        var resolution = parseInt(e.key);
+        var viewports = e.values;
+
+        var binnedViewports = viewports.reduceRight(function(map, e, i, a) {
+          var bin = Math.floor(e.viewport/BIN_SIZE)*BIN_SIZE;
+          map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
+          return map
+        }, d3.map());
+
+        /*
+        var viewportsInBins = bins.map(function(bin) {
+          return {
+            viewport: bin,
+            frequency: binnedViewports.has(bin) ? binnedViewports.get(bin) : 0
+          };
+        });
+        */
+
+        var maxFreq = parseFloat(d3.max(binnedViewports.values()));
+
+        var viewportsInBins = binnedViewports.entries().map(function(e) { 
+          return {
+            resolution: resolution,
+            viewport: parseInt(e.key),
+            frequency: e.value,
+            relfreq: maxFreq > 0 ? e.value / maxFreq : 0
+          };
+        });
+
+
+        return {
+          key: e.key,
+          values: viewportsInBins
+        };
+      });
+
+      console.log(resolutions, binnedData)
+
+      _binnedData = binnedData;
+
+
+      var xlabel = graph.select(".reslabels").selectAll("span").data(binnedData);
+
+      var rowHeight = 600/binnedData.length;
 
       xlabel.enter().append("span")
         .style("position", "absolute")
@@ -71,7 +138,7 @@
         .style("top", function(e,i) { return i * rowHeight + "px"})
         .text(function(e) { return ""+e.key })
 
-      var resdiv = graph.select(".canvas").selectAll("div").data(resolutions)
+      var resdiv = graph.select(".canvas").selectAll("div").data(binnedData)
 
       resdiv.enter().append("div")
         .style("position", "absolute")
@@ -83,13 +150,13 @@
       vpdiv.enter().append("div")
         //.text(function(e) { console.log(e); return e.viewport;})
         .style("position", "absolute")
-        .style("left", function(e) { return e.viewport +"px"})
+        .style("left", function(e) { return e.viewport/4 +"px"})
         //.text("x")
         .style("background", "black")
-        .style("width", "1px")
+        .style("width", BIN_SIZE/4+"px")
         //.style("height", function(e) { return rowHeight * e.frequency +"px"})
         .style("height", rowHeight+"px")
-        //.style("opacity", function(e) { return e.frequency })
+        .style("opacity", function(e) { return e.relfreq })
         .on("mouseover", function(e) { console.log(e) })
 
 
