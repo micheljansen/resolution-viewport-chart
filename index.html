@@ -115,14 +115,14 @@
         });
         */
 
-        var maxFreq = parseFloat(d3.max(binnedViewports.values()));
+        var total = parseFloat(d3.sum(binnedViewports.values()));
 
         var viewportsInBins = binnedViewports.entries().map(function(e) { 
           return {
             resolution: resolution,
             viewport: parseInt(e.key),
             frequency: e.value,
-            relfreq: maxFreq > 0 ? e.value / maxFreq : 0
+            relfreq: total > 0 ? e.value / total : 0
           };
         });
 
@@ -218,7 +218,7 @@
 
 
           // set description label
-          d3.select("#details").text(function() { console.log(vp); return vp.relfreq*100+"%"; });
+          d3.select("#details").text(function() { console.log(vp); return (vp.relfreq*100).toFixed(1)+"%"; });
 
         })
         .on("mouseout", function(vp) {
