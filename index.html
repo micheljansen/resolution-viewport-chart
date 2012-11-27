@@ -181,7 +181,8 @@
         .style("position", "absolute")
         .style("left", function(e) { return e.viewport/4 +"px"})
         //.text("x")
-        .style("background", "black")
+        .style("background", function(e) {
+          return e.resolution >= e.viewport && e.resolution < e.viewport+BIN_SIZE ? "#006" : "black" })
         .style("width", BIN_SIZE/4+"px")
         //.style("height", function(e) { return rowHeight * e.frequency +"px"})
         .style("height", rowHeight+"px")
