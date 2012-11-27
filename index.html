@@ -26,15 +26,25 @@
         margin-left: -50px;
         text-align: center;
       }
-      .reslabels {
+      .reslabels, .restotals {
         position: absolute;
         font-size: 10px;
       }
-      .vplabels {
+      .restotals {
+        left: 700px;
+        border-left: 1px solid #bbb;
+        height: 520px;
+      }
+      .vplabels, .vptotals {
         position: absolute;
         font-size: 10px;
         top: 0;
         left: 40px;
+      }
+      .vptotals {
+        top: 540px;
+        width: 660px;
+        border-top: 1px solid #bbb;
       }
       .reslabels span {
       }
@@ -54,6 +64,8 @@
       <div class="canvas"></div>
       <div class="vplabels"></div>
       <div class="reslabels"></div>
+      <div class="vptotals"></div>
+      <div class="restotals"></div>
     </div>
   </body>
   <script src="http://d3js.org/d3.v2.js"></script>
@@ -71,6 +83,7 @@
       });
 
       var groupByResolution = d3.nest().key(function(e){return e.resolution})
+      var groupByViewport = d3.nest().key(function(e){return e.viewport})
       var resolutions = groupByResolution.entries(data);
       // for debugging
       _data = data;
@@ -137,6 +150,29 @@
       _binnedData = binnedData;
 
 
+      // count the totals for display on the right
+      resolution_totals = resolutions.map(function(e) {
+        return {
+          key: parseInt(e.key),
+          value: d3.sum(e.values.map(function(x) { return x.frequency }))
+        }
+      }).sort(function(a,b) { return a.key - b.key });
+
+      // sum up the totals for viewports across all resolutions
+      viewport_totals = _binnedData.reduceRight(function(map,e) {
+        return e.values.reduceRight(function(map,e){
+          var bin = e.viewport;
+          map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
+          return map
+        }, map);
+      }, d3.map())
+        .entries()
+        .map(function(e) { e.key = parseInt(e.key); return e })
+        .sort(function(a,b) { return a.key - b.key })
+
+      var total_visits = d3.sum(resolution_totals.map(function(e) { return e.value }));
+
+
       // the vertical scale
       //var y = d3.scale.linear().domain(resExtent).range([0, 500]);
       var rowHeight = 500/binnedData.length;
@@ -144,21 +180,49 @@
       var y = function(res) {return bare_resolutions.indexOf(parseInt(res)) * rowHeight};
 
       // set up labels
-
       var vplabel = graph.select(".vplabels").selectAll("span").data(d3.range(0, 2561, 128))
         .enter().append("span")
         .style("position", "absolute")
         .style("left", function(e, i) { return e/4+"px"})
         .text(String);
 
-      var reslabel = graph.select(".reslabels").selectAll("span").data(binnedData);
+      var vptotal = graph.select(".vptotals").selectAll("span").data(viewport_totals)
+        .enter().append("span")
+        .style("position", "absolute")
+        .style("left", function(e, i) { return e.key/4+"px"})
+        //.text(function(e) { return (100*e.value/total_visits).toFixed(0)+"%" })
+        .style("background", "black")
+        .style("opacity", function(e) { return e.value/total_visits })
+        .style("width", BIN_SIZE/4+"px")
+        .style("height", rowHeight+"px")
+        .on("mouseover", function(e) {
+          d3.select("#details").html(
+            "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"px"
+          )
+        })
 
 
-      reslabel.enter().append("span")
+      var reslabel = graph.select(".reslabels").selectAll("span").data(binnedData)
+        .enter().append("span")
         .style("position", "absolute")
         //.style("top", function(e,i) {return e.key+"px"})
         .style("top", function(e,i) { return y(e.key)+"px"})
         .text(function(e) { return ""+e.key })
+
+      var restotal = graph.select(".restotals").selectAll("span").data(resolution_totals)
+        .enter().append("span")
+        .style("position", "absolute")
+        .style("top", function(e,i) { return y(e.key)+"px"})
+        //.text(function(e) { return ""+(100*e.value/total_visits).toFixed(0)+"%" })
+        .style("background", "black")
+        .style("opacity", function(e) { return e.value/total_visits })
+        .style("width", BIN_SIZE/4+"px")
+        .style("height", rowHeight+"px")
+        .on("mouseover", function(e) {
+          d3.select("#details").html(
+            "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal resolution of <b>"+e.key+"px"
+          )
+        })
 
       // set up overlay layer
       var overlay_layer = graph.select(".canvas").append("div")
@@ -232,9 +296,6 @@
             reslines.get(vp.resolution).remove();
           }
         })
-
-
-
 
     });
   </script>
