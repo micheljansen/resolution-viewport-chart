@@ -9,8 +9,8 @@
       }
       #viewports_resolutions_graph {
         box-model: border-box;
-        width: 1000px;
-        height: 1000px;
+        width: 800px;
+        height: 600px;
         border: 1px solid #999;
         background: white;
         position: relative;
@@ -26,6 +26,10 @@
         margin-left: -50px;
         text-align: center;
       }
+      .reslabels {
+        left: 10px;
+        text-align: right;
+      }
       .reslabels, .restotals {
         position: absolute;
         font-size: 10px;
@@ -38,7 +42,7 @@
       .vplabels, .vptotals {
         position: absolute;
         font-size: 10px;
-        top: 0;
+        top: 10px;
         left: 40px;
       }
       .vptotals {
@@ -53,7 +57,10 @@
       .canvas {
         position: relative;
         margin-left: 40px;
-        margin-top: 20px;
+        margin-top: 30px;
+      }
+      #details {
+        padding: 10px 40px;
       }
     </style>
   </head>
@@ -196,9 +203,13 @@
         .style("width", BIN_SIZE/4-2+"px")
         .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
         .on("mouseover", function(e) {
+          d3.select(this).style("background", "red");
           d3.select("#details").html(
             "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"px"
           )
+        })
+        .on("mouseout", function(e) {
+          d3.select(this).style("background", "#999");
         })
 
 
@@ -219,9 +230,13 @@
         .style("width", function(e) { return 1+(e.value/total_visits)*8*BIN_SIZE/4+"px" })
         .style("height", rowHeight+"px")
         .on("mouseover", function(e) {
+          d3.select(this).style("background", "red");
           d3.select("#details").html(
             "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal resolution of <b>"+e.key+"px"
           )
+        })
+        .on("mouseout", function(e) {
+          d3.select(this).style("background", "#999");
         })
 
       // set up overlay layer
