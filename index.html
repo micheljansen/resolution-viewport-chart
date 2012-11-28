@@ -60,7 +60,20 @@
         margin-top: 30px;
       }
       #details {
-        padding: 10px 40px;
+        height: 4em;
+        padding: 1em 40px;
+      }
+      p {
+        margin: 0;
+      }
+      .visitors {
+        display: inline-block;
+        text-align: right;
+        width: 4em;
+      }
+      .pct {
+        display: inline-block;
+        width: 4em;
       }
     </style>
   </head>
@@ -157,23 +170,29 @@
       _binnedData = binnedData;
 
 
+      resolution_totals_map = d3.map();
+
       // count the totals for display on the right
       resolution_totals = resolutions.map(function(e) {
+        var total = d3.sum(e.values.map(function(x) { return x.frequency }));
+        resolution_totals_map.set(parseInt(e.key), total);
+
         return {
           key: parseInt(e.key),
-          value: d3.sum(e.values.map(function(x) { return x.frequency }))
+          value: total
         }
       }).sort(function(a,b) { return a.key - b.key });
 
       // sum up the totals for viewports across all resolutions
-      viewport_totals = _binnedData.reduceRight(function(map,e) {
+      viewport_totals_map = _binnedData.reduceRight(function(map,e) {
         return e.values.reduceRight(function(map,e){
           var bin = e.viewport;
           map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
           return map
         }, map);
       }, d3.map())
-        .entries()
+
+      viewport_totals = viewport_totals_map.entries()
         .map(function(e) { e.key = parseInt(e.key); return e })
         .sort(function(a,b) { return a.key - b.key })
 
@@ -205,7 +224,10 @@
         .on("mouseover", function(e) {
           d3.select(this).style("background", "red");
           d3.select("#details").html(
-            "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"-"+(e.key+BIN_SIZE)+"px"
+            "<p>Across all resolutions,</p>"+
+            "<p>"+
+            "<b class='visitors'>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"-"+(e.key+BIN_SIZE)+"px"+
+            "</p>"
           )
         })
         .on("mouseout", function(e) {
@@ -232,7 +254,9 @@
         .on("mouseover", function(e) {
           d3.select(this).style("background", "red");
           d3.select("#details").html(
-            "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal resolution of <b>"+e.key+"px"
+            "<p>"+
+            "<b class='visitors'>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal resolution of <b>"+e.key+"px"+
+            "</p>"
           )
         })
         .on("mouseout", function(e) {
@@ -299,7 +323,16 @@
 
           // set description label
           d3.select("#details").html(function() {
-            return "<b>"+(vp.relfreq*100).toFixed(2)+"%</b> of people with horizontal resolution <b>"+vp.resolution+"</b> have a viewport between <b>"+vp.viewport+"-"+(vp.viewport+BIN_SIZE)+"px</b>";
+            return ""+
+            "<p>"+
+            "<b class='visitors'>"+resolution_totals_map.get(vp.resolution)+"</b> visitors <span class='pct'>(<b>"+(100*resolution_totals_map.get(vp.resolution)/total_visits).toFixed(2)+"%</b>)</span> have a horizontal resolution of <b>"+vp.resolution+"px</b>"+
+            "</p>"+
+            "<p>"+
+            "<b class='visitors'>"+viewport_totals_map.get(vp.viewport)+"</b> visitors <span class='pct'>(<b>"+(100*viewport_totals_map.get(vp.viewport)/total_visits).toFixed(2)+"%</b>)</span> have a viewport between <b>"+vp.viewport+"-"+(vp.viewport+BIN_SIZE)+"px</b>"+
+            "</p>"+
+            "<p>"+
+            "<b class='visitors'>"+vp.frequency+"</b> visitors have this combination (<b>"+(vp.relfreq*100).toFixed(2)+"%</b> of people with this resolution)</b>"+
+            "</p>"
           });
 
         })
