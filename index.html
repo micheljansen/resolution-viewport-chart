@@ -189,12 +189,12 @@
       var vptotal = graph.select(".vptotals").selectAll("span").data(viewport_totals)
         .enter().append("span")
         .style("position", "absolute")
-        .style("left", function(e, i) { return e.key/4+"px"})
+        .style("left", function(e, i) { return 1+e.key/4+"px"})
         //.text(function(e) { return (100*e.value/total_visits).toFixed(0)+"%" })
-        .style("background", "black")
-        .style("opacity", function(e) { return e.value/total_visits })
-        .style("width", BIN_SIZE/4+"px")
-        .style("height", rowHeight+"px")
+        .style("background", "#999")
+        //.style("opacity", function(e) { return e.value/total_visits })
+        .style("width", BIN_SIZE/4-2+"px")
+        .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
         .on("mouseover", function(e) {
           d3.select("#details").html(
             "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"px"
@@ -214,9 +214,9 @@
         .style("position", "absolute")
         .style("top", function(e,i) { return y(e.key)+"px"})
         //.text(function(e) { return ""+(100*e.value/total_visits).toFixed(0)+"%" })
-        .style("background", "black")
-        .style("opacity", function(e) { return e.value/total_visits })
-        .style("width", BIN_SIZE/4+"px")
+        .style("background", "#999")
+        //.style("opacity", function(e) { return e.value/total_visits })
+        .style("width", function(e) { return 1+(e.value/total_visits)*8*BIN_SIZE/4+"px" })
         .style("height", rowHeight+"px")
         .on("mouseover", function(e) {
           d3.select("#details").html(
