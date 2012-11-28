@@ -205,7 +205,7 @@
         .on("mouseover", function(e) {
           d3.select(this).style("background", "red");
           d3.select("#details").html(
-            "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"px"
+            "<b>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"-"+(e.key+BIN_SIZE)+"px"
           )
         })
         .on("mouseout", function(e) {
