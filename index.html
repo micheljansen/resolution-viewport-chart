@@ -416,6 +416,12 @@
 
       });
     }
-    loadGraph("resolutions-and-viewports.uk.csv");
+    if(window.location.hash === "") {
+      loadGraph("resolutions-and-viewports.uk.csv");
+    }
+    else {
+      var country = window.location.hash.replace(/#/, '')
+      loadGraph("resolutions-and-viewports."+country+".csv");
+    }
   </script>
 </html>
