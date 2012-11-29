@@ -129,8 +129,8 @@
 
       var BIN_SIZE = 64;
 
-      // divide the range of viewports in bins of 10px
-      var bins = d3.range(minVp, maxVp+1, BIN_SIZE);
+      // divide the range of viewports in bins of BIN_SIZE px
+      bins = d3.range(0, maxVp+1, BIN_SIZE);
 
       var binnedData = resolutions.map(function(e) {
         // bin a single viewport
@@ -209,21 +209,33 @@
       var bare_resolutions = resolutions.map(function(e) { return parseInt(e.key) });
       var y = function(res) {return bare_resolutions.indexOf(parseInt(res)) * rowHeight};
 
+      // choose the width such that columns are whole pixel size
+      var columnWidth = Math.floor(680/(bins.length+1));
+      var graphWidth = (bins.length) * columnWidth;
+
+      // horizontal scale
+      x = d3.scale.linear().domain(d3.extent(bins)).range([0, graphWidth-columnWidth]);
+      console.log(bins.length)
+      console.log(columnWidth)
+      console.log(graphWidth)
+
+      console.log(bins.map(function(b) { return x(b) }));
+
       // set up labels
-      var vplabel = graph.select(".vplabels").selectAll("span").data(d3.range(0, 2561, 128))
+      var vplabel = graph.select(".vplabels").selectAll("span").data(d3.range(bins[0], bins[bins.length-1], 4*BIN_SIZE))
         .enter().append("span")
         .style("position", "absolute")
-        .style("left", function(e, i) { return e/4+"px"})
+        .style("left", function(e, i) { return x(e)+"px"})
         .text(String);
 
       var vptotal = graph.select(".vptotals").selectAll("span").data(viewport_totals)
         .enter().append("span")
         .style("position", "absolute")
-        .style("left", function(e, i) { return 1+e.key/4+"px"})
+        .style("left", function(e, i) { return 1+x(e.key)+"px"})
         //.text(function(e) { return (100*e.value/total_visits).toFixed(0)+"%" })
         .style("background", "#999")
         //.style("opacity", function(e) { return e.value/total_visits })
-        .style("width", BIN_SIZE/4-2+"px")
+        .style("width", columnWidth-2+"px")
         .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
         .on("mouseover", function(e) {
           d3.select(this).style("background", "red");
@@ -249,12 +261,12 @@
       var restotal = graph.select(".restotals").selectAll("span").data(resolution_totals)
         .enter().append("span")
         .style("position", "absolute")
-        .style("top", function(e,i) { return y(e.key)+"px"})
+        .style("top", function(e,i) { return 1+y(e.key)+"px"})
         //.text(function(e) { return ""+(100*e.value/total_visits).toFixed(0)+"%" })
         .style("background", "#999")
         //.style("opacity", function(e) { return e.value/total_visits })
-        .style("width", function(e) { return 1+(e.value/total_visits)*8*BIN_SIZE/4+"px" })
-        .style("height", rowHeight+"px")
+        .style("width", function(e) { return 1+(e.value/total_visits)*8*20+"px" })
+        .style("height", rowHeight-2+"px")
         .on("mouseover", function(e) {
           d3.select(this).style("background", "red");
           d3.select("#details").html(
@@ -270,6 +282,8 @@
       // set up overlay layer
       var overlay_layer = graph.select(".canvas").append("div")
         .style("position", "absolute")
+        .style("top", "0")
+        .style("left", "0")
 
 
       // set up data
@@ -286,11 +300,11 @@
       vpdiv.enter().append("div")
         //.text(function(e) { console.log(e); return e.viewport;})
         .style("position", "absolute")
-        .style("left", function(e) { return e.viewport/4 +"px"})
+        .style("left", function(e) { return x(e.viewport)+"px"})
         //.text("x")
         .style("background", function(e) {
           return e.resolution >= e.viewport && e.resolution < e.viewport+BIN_SIZE ? "#006" : "black" })
-        .style("width", BIN_SIZE/4+"px")
+        .style("width", columnWidth+"px")
         //.style("height", function(e) { return rowHeight * e.frequency +"px"})
         .style("height", rowHeight+"px")
         .style("opacity", function(e) { return 0.05 + 0.95*e.relfreq })
@@ -300,9 +314,9 @@
           var vpline = overlay_layer.append("div")
             .style("background", "rgba(255,0,0,0.1)")
             .style("position", "absolute")
-            .style("width", BIN_SIZE/4+"px")
-            .style("height", "600px")
-            .style("left", function(res) { return vp.viewport/4+"px" })
+            .style("width", columnWidth+"px")
+            .style("height", "1000px")
+            .style("left", function(res) { return x(vp.viewport)+"px" })
 
           var resline = overlay_layer.append("div")
             .style("background", "rgba(255,0,0,0.1)")
