@@ -91,278 +91,316 @@
       <div class="vptotals"></div>
       <div class="restotals"></div>
     </div>
+    <div style="position: absolute; right: 10px">
+      <a href="#uk">uk</a>
+      <a href="#es">es</a>
+    </div>
   </body>
   <script src="http://d3js.org/d3.v2.js"></script>
   <script>
+
+    window.onhashchange = function() {
+      var country = window.location.hash.replace(/#/, '')
+      loadGraph("resolutions-and-viewports."+country+".csv");
+    }
+
     var graph = d3.select("#viewports_resolutions_graph");
 
-    d3.csv("resolutions-and-viewports.csv", function(data) {
-      var vplines = d3.map();
-      var reslines = d3.map();
-      // beat the data into shape
-      data.forEach(function(o) {
-        o.resolution = parseInt(o.resolution);
-        o.viewport = parseInt(o.viewport);
-        o.frequency = parseFloat(o.frequency);
-      });
+    // set up overlay layer
+    var overlay_layer = graph.select(".canvas").append("div")
+      .style("position", "absolute")
+      .style("top", "0")
+      .style("left", "0")
 
-      var groupByResolution = d3.nest().key(function(e){return e.resolution})
-      var groupByViewport = d3.nest().key(function(e){return e.viewport})
-      var resolutions = groupByResolution.entries(data);
-      // for debugging
-      _data = data;
-      _resolutions = resolutions;
-      _groupByResolution = groupByResolution;
+    function loadGraph(csvfile) {
+      d3.select("#loading").style("display", "block");
 
-      d3.select("#loading").style("display", "none");
-
-      // the range of resolutions
-      var resExtent = d3.extent(data, function(e) {return e.resolution});
-      var minRes = resExtent[0];
-      var maxRes = resExtent[1];
-
-      // range of viewports
-      var vpExtent = d3.extent(data, function(e) {return e.viewport});
-      var minVp = vpExtent[0];
-      var maxVp = vpExtent[1];
-
-
-      var BIN_SIZE = 64;
-
-      // divide the range of viewports in bins of BIN_SIZE px
-      bins = d3.range(0, maxVp+1, BIN_SIZE);
-
-      var binnedData = resolutions.map(function(e) {
-        // bin a single viewport
-        var resolution = parseInt(e.key);
-        var viewports = e.values;
-
-        var binnedViewports = viewports.reduceRight(function(map, e, i, a) {
-          var bin = Math.floor(e.viewport/BIN_SIZE)*BIN_SIZE;
-          map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
-          return map
-        }, d3.map());
-
-        /*
-        var viewportsInBins = bins.map(function(bin) {
-          return {
-            viewport: bin,
-            frequency: binnedViewports.has(bin) ? binnedViewports.get(bin) : 0
-          };
-        });
-        */
-
-        var total = parseFloat(d3.sum(binnedViewports.values()));
-
-        var viewportsInBins = binnedViewports.entries().map(function(e) { 
-          return {
-            resolution: resolution,
-            viewport: parseInt(e.key),
-            frequency: e.value,
-            relfreq: total > 0 ? e.value / total : 0
-          };
+      d3.csv(csvfile, function(data) {
+        var vplines = d3.map();
+        var reslines = d3.map();
+        // beat the data into shape
+        data.forEach(function(o) {
+          o.resolution = parseInt(o.resolution);
+          o.viewport = parseInt(o.viewport);
+          o.frequency = parseFloat(o.frequency);
         });
 
+        var groupByResolution = d3.nest().key(function(e){return e.resolution})
+        var groupByViewport = d3.nest().key(function(e){return e.viewport})
+        var resolutions = groupByResolution.entries(data);
+        // for debugging
+        _data = data;
+        _resolutions = resolutions;
+        _groupByResolution = groupByResolution;
 
-        return {
-          key: e.key,
-          values: viewportsInBins
-        };
-      });
+        d3.select("#loading").style("display", "none");
 
+        // the range of resolutions
+        var resExtent = d3.extent(data, function(e) {return e.resolution});
+        var minRes = resExtent[0];
+        var maxRes = resExtent[1];
 
-      _binnedData = binnedData;
-
-
-      resolution_totals_map = d3.map();
-
-      // count the totals for display on the right
-      resolution_totals = resolutions.map(function(e) {
-        var total = d3.sum(e.values.map(function(x) { return x.frequency }));
-        resolution_totals_map.set(parseInt(e.key), total);
-
-        return {
-          key: parseInt(e.key),
-          value: total
-        }
-      }).sort(function(a,b) { return a.key - b.key });
-
-      // sum up the totals for viewports across all resolutions
-      viewport_totals_map = _binnedData.reduceRight(function(map,e) {
-        return e.values.reduceRight(function(map,e){
-          var bin = e.viewport;
-          map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
-          return map
-        }, map);
-      }, d3.map())
-
-      viewport_totals = viewport_totals_map.entries()
-        .map(function(e) { e.key = parseInt(e.key); return e })
-        .sort(function(a,b) { return a.key - b.key })
-
-      var total_visits = d3.sum(resolution_totals.map(function(e) { return e.value }));
+        // range of viewports
+        var vpExtent = d3.extent(data, function(e) {return e.viewport});
+        var minVp = vpExtent[0];
+        var maxVp = vpExtent[1];
 
 
-      // the vertical scale
-      //var y = d3.scale.linear().domain(resExtent).range([0, 500]);
-      var rowHeight = 500/binnedData.length;
-      var bare_resolutions = resolutions.map(function(e) { return parseInt(e.key) });
-      var y = function(res) {return bare_resolutions.indexOf(parseInt(res)) * rowHeight};
+        var BIN_SIZE = 64;
 
-      // choose the width such that columns are whole pixel size
-      var columnWidth = Math.floor(680/(bins.length+1));
-      var graphWidth = (bins.length) * columnWidth;
+        // divide the range of viewports in bins of BIN_SIZE px
+        bins = d3.range(0, maxVp+1, BIN_SIZE);
 
-      // horizontal scale
-      x = d3.scale.linear().domain(d3.extent(bins)).range([0, graphWidth-columnWidth]);
-      console.log(bins.length)
-      console.log(columnWidth)
-      console.log(graphWidth)
+        var binnedData = resolutions.map(function(e) {
+          // bin a single viewport
+          var resolution = parseInt(e.key);
+          var viewports = e.values;
 
-      console.log(bins.map(function(b) { return x(b) }));
+          var binnedViewports = viewports.reduceRight(function(map, e, i, a) {
+            var bin = Math.floor(e.viewport/BIN_SIZE)*BIN_SIZE;
+            map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
+            return map
+          }, d3.map());
 
-      // set up labels
-      var vplabel = graph.select(".vplabels").selectAll("span").data(d3.range(bins[0], bins[bins.length-1], 4*BIN_SIZE))
-        .enter().append("span")
-        .style("position", "absolute")
-        .style("left", function(e, i) { return x(e)+"px"})
-        .text(String);
+          /*
+          var viewportsInBins = bins.map(function(bin) {
+            return {
+              viewport: bin,
+              frequency: binnedViewports.has(bin) ? binnedViewports.get(bin) : 0
+            };
+          });
+          */
 
-      var vptotal = graph.select(".vptotals").selectAll("span").data(viewport_totals)
-        .enter().append("span")
-        .style("position", "absolute")
-        .style("left", function(e, i) { return 1+x(e.key)+"px"})
-        //.text(function(e) { return (100*e.value/total_visits).toFixed(0)+"%" })
-        .style("background", "#999")
-        //.style("opacity", function(e) { return e.value/total_visits })
-        .style("width", columnWidth-2+"px")
-        .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
-        .on("mouseover", function(e) {
-          d3.select(this).style("background", "red");
-          d3.select("#details").html(
-            "<p>Across all resolutions,</p>"+
-            "<p>"+
-            "<b class='visitors'>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"-"+(e.key+BIN_SIZE)+"px"+
-            "</p>"
-          )
-        })
-        .on("mouseout", function(e) {
-          d3.select(this).style("background", "#999");
-        })
+          var total = parseFloat(d3.sum(binnedViewports.values()));
 
-
-      var reslabel = graph.select(".reslabels").selectAll("span").data(binnedData)
-        .enter().append("span")
-        .style("position", "absolute")
-        //.style("top", function(e,i) {return e.key+"px"})
-        .style("top", function(e,i) { return y(e.key)+"px"})
-        .text(function(e) { return ""+e.key })
-
-      var restotal = graph.select(".restotals").selectAll("span").data(resolution_totals)
-        .enter().append("span")
-        .style("position", "absolute")
-        .style("top", function(e,i) { return 1+y(e.key)+"px"})
-        //.text(function(e) { return ""+(100*e.value/total_visits).toFixed(0)+"%" })
-        .style("background", "#999")
-        //.style("opacity", function(e) { return e.value/total_visits })
-        .style("width", function(e) { return 1+(e.value/total_visits)*8*20+"px" })
-        .style("height", rowHeight-2+"px")
-        .on("mouseover", function(e) {
-          d3.select(this).style("background", "red");
-          d3.select("#details").html(
-            "<p>"+
-            "<b class='visitors'>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal resolution of <b>"+e.key+"px"+
-            "</p>"
-          )
-        })
-        .on("mouseout", function(e) {
-          d3.select(this).style("background", "#999");
-        })
-
-      // set up overlay layer
-      var overlay_layer = graph.select(".canvas").append("div")
-        .style("position", "absolute")
-        .style("top", "0")
-        .style("left", "0")
-
-
-      // set up data
-
-      var resdiv = graph.select(".canvas").selectAll("div").data(binnedData)
-
-      resdiv.enter().append("div")
-        .style("position", "absolute")
-        //.style("top", function(e,i) {return e.key+"px"})
-        .style("top", function(e,i) { return y(e.key)+ "px"})
-
-      var vpdiv = resdiv.selectAll("div").data(function(d,i) {return d.values; })
-
-      vpdiv.enter().append("div")
-        //.text(function(e) { console.log(e); return e.viewport;})
-        .style("position", "absolute")
-        .style("left", function(e) { return x(e.viewport)+"px"})
-        //.text("x")
-        .style("background", function(e) {
-          return e.resolution >= e.viewport && e.resolution < e.viewport+BIN_SIZE ? "#006" : "black" })
-        .style("width", columnWidth+"px")
-        //.style("height", function(e) { return rowHeight * e.frequency +"px"})
-        .style("height", rowHeight+"px")
-        .style("opacity", function(e) { return 0.05 + 0.95*e.relfreq })
-        //.on("mouseover", function(e) { console.log(e) })
-        .on("mouseover", function(vp) {
-          // show a line to indicate the viewport
-          var vpline = overlay_layer.append("div")
-            .style("background", "rgba(255,0,0,0.1)")
-            .style("position", "absolute")
-            .style("width", columnWidth+"px")
-            .style("height", "1000px")
-            .style("left", function(res) { return x(vp.viewport)+"px" })
-
-          var resline = overlay_layer.append("div")
-            .style("background", "rgba(255,0,0,0.1)")
-            .style("position", "absolute")
-            .style("height", rowHeight+"px")
-            .style("width", "1000px")
-            .style("top", function(res) { return y(vp.resolution)+"px" })
-
-
-          // remove if exists
-          if(vplines.has(vp.viewport)) {
-            vplines.get(vp.viewport).remove();
-          }
-
-          if(reslines.has(vp.resolution)) {
-            reslines.get(vp.resolution).remove();
-          }
-
-          vplines.set(vp.viewport, vpline);
-          reslines.set(vp.resolution, resline);
-
-
-          // set description label
-          d3.select("#details").html(function() {
-            return ""+
-            "<p>"+
-            "<b class='visitors'>"+resolution_totals_map.get(vp.resolution)+"</b> visitors <span class='pct'>(<b>"+(100*resolution_totals_map.get(vp.resolution)/total_visits).toFixed(2)+"%</b>)</span> have a horizontal resolution of <b>"+vp.resolution+"px</b>"+
-            "</p>"+
-            "<p>"+
-            "<b class='visitors'>"+viewport_totals_map.get(vp.viewport)+"</b> visitors <span class='pct'>(<b>"+(100*viewport_totals_map.get(vp.viewport)/total_visits).toFixed(2)+"%</b>)</span> have a viewport between <b>"+vp.viewport+"-"+(vp.viewport+BIN_SIZE)+"px</b>"+
-            "</p>"+
-            "<p>"+
-            "<b class='visitors'>"+vp.frequency+"</b> visitors have this combination (<b>"+(vp.relfreq*100).toFixed(2)+"%</b> of people with this resolution)</b>"+
-            "</p>"
+          var viewportsInBins = binnedViewports.entries().map(function(e) { 
+            return {
+              resolution: resolution,
+              viewport: parseInt(e.key),
+              frequency: e.value,
+              relfreq: total > 0 ? e.value / total : 0
+            };
           });
 
-        })
-        .on("mouseout", function(vp) {
-          if(vplines.has(vp.viewport)) {
-            vplines.get(vp.viewport).remove();
-          }
-          if(reslines.has(vp.resolution)) {
-            reslines.get(vp.resolution).remove();
-          }
-        })
 
-    });
+          return {
+            key: e.key,
+            values: viewportsInBins
+          };
+        });
+
+
+        _binnedData = binnedData;
+
+
+        resolution_totals_map = d3.map();
+
+        // count the totals for display on the right
+        resolution_totals = resolutions.map(function(e) {
+          var total = d3.sum(e.values.map(function(x) { return x.frequency }));
+          resolution_totals_map.set(parseInt(e.key), total);
+
+          return {
+            key: parseInt(e.key),
+            value: total
+          }
+        }).sort(function(a,b) { return a.key - b.key });
+
+        // sum up the totals for viewports across all resolutions
+        viewport_totals_map = _binnedData.reduceRight(function(map,e) {
+          return e.values.reduceRight(function(map,e){
+            var bin = e.viewport;
+            map.has(bin) ? map.set(bin, map.get(bin) + e.frequency) : map.set(bin, e.frequency);
+            return map
+          }, map);
+        }, d3.map())
+
+        viewport_totals = viewport_totals_map.entries()
+          .map(function(e) { e.key = parseInt(e.key); return e })
+          .sort(function(a,b) { return a.key - b.key })
+
+        var total_visits = d3.sum(resolution_totals.map(function(e) { return e.value }));
+
+
+        // the vertical scale
+        //var y = d3.scale.linear().domain(resExtent).range([0, 500]);
+        var rowHeight = 500/binnedData.length;
+        var bare_resolutions = resolutions.map(function(e) { return parseInt(e.key) });
+        var y = function(res) {return bare_resolutions.indexOf(parseInt(res)) * rowHeight};
+
+        // choose the width such that columns are whole pixel size
+        var columnWidth = Math.floor(680/(bins.length+1));
+        var graphWidth = (bins.length) * columnWidth;
+
+        // horizontal scale
+        x = d3.scale.linear().domain(d3.extent(bins)).range([0, graphWidth-columnWidth]);
+
+        // set up labels
+        var vplabel = graph.select(".vplabels").selectAll("span").data(d3.range(bins[0], bins[bins.length-1], 4*BIN_SIZE), String)
+
+        vplabel.enter().append("span")
+          .style("position", "absolute")
+          .style("left", function(e, i) { return x(e)+"px"})
+          .text(String);
+
+        vplabel.transition()
+          .style("left", function(e, i) { return x(e)+"px"})
+
+        vplabel.exit().remove()
+
+        var vptotal = graph.select(".vptotals").selectAll("span").data(viewport_totals, function(e) { return e.key } )
+
+        vptotal.enter().append("span")
+          .style("position", "absolute")
+          .style("left", function(e, i) { return 1+x(e.key)+"px"})
+          //.text(function(e) { return (100*e.value/total_visits).toFixed(0)+"%" })
+          .style("background", "#999")
+          //.style("opacity", function(e) { return e.value/total_visits })
+          .style("width", columnWidth-2+"px")
+          .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
+          .on("mouseover", function(e) {
+            d3.select(this).style("background", "red");
+            d3.select("#details").html(
+              "<p>Across all resolutions,</p>"+
+              "<p>"+
+              "<b class='visitors'>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal viewport of <b>"+e.key+"-"+(e.key+BIN_SIZE)+"px"+
+              "</p>"
+            )
+          })
+          .on("mouseout", function(e) {
+            d3.select(this).style("background", "#999");
+          })
+
+        vptotal.transition()
+          .style("left", function(e, i) { return 1+x(e.key)+"px"})
+          .style("width", columnWidth-2+"px")
+          .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
+
+        vptotal.exit().remove()
+
+
+
+        var reslabel = graph.select(".reslabels").selectAll("span").data(binnedData, function(e) { return e.key; })
+
+        reslabel.enter().append("span")
+          .style("position", "absolute")
+          .style("top", function(e,i) { return y(e.key)+"px"})
+          .text(function(e) { return ""+e.key })
+
+        reslabel.transition()
+          .style("top", function(e,i) { return y(e.key)+"px"})
+
+        reslabel.exit().remove();
+
+        var restotal = graph.select(".restotals").selectAll("span").data(resolution_totals, function(e) { return e.key })
+
+        restotal.enter().append("span")
+          .style("position", "absolute")
+          .style("background", "#999")
+          .style("top", function(e,i) { return 1+y(e.key)+"px"})
+          .style("width", function(e) { return 1+(e.value/total_visits)*8*20+"px" })
+          .style("height", rowHeight-2+"px")
+          .on("mouseover", function(e) {
+            d3.select(this).style("background", "red");
+            d3.select("#details").html(
+              "<p>"+
+              "<b class='visitors'>"+e.value+"</b> people (<b>"+(100*e.value/total_visits).toFixed(2)+"</b>%) have a horizontal resolution of <b>"+e.key+"px"+
+              "</p>"
+            )
+          })
+          .on("mouseout", function(e) {
+            d3.select(this).style("background", "#999");
+          })
+
+        restotal.transition()
+          .style("top", function(e,i) { return 1+y(e.key)+"px"})
+          .style("width", function(e) { return 1+(e.value/total_visits)*8*20+"px" })
+          .style("height", rowHeight-2+"px")
+
+        restotal.exit().remove();
+
+
+        return;
+
+        // set up data
+
+        var resdiv = graph.select(".canvas").selectAll("div").data(binnedData)
+
+        resdiv.enter().append("div")
+          .style("position", "absolute")
+          //.style("top", function(e,i) {return e.key+"px"})
+          .style("top", function(e,i) { return y(e.key)+ "px"})
+
+        var vpdiv = resdiv.selectAll("div").data(function(d,i) {return d.values; })
+
+        vpdiv.enter().append("div")
+          //.text(function(e) { console.log(e); return e.viewport;})
+          .style("position", "absolute")
+          .style("left", function(e) { return x(e.viewport)+"px"})
+          //.text("x")
+          .style("background", function(e) {
+            return e.resolution >= e.viewport && e.resolution < e.viewport+BIN_SIZE ? "#006" : "black" })
+          .style("width", columnWidth+"px")
+          //.style("height", function(e) { return rowHeight * e.frequency +"px"})
+          .style("height", rowHeight+"px")
+          .style("opacity", function(e) { return 0.05 + 0.95*e.relfreq })
+          //.on("mouseover", function(e) { console.log(e) })
+          .on("mouseover", function(vp) {
+            // show a line to indicate the viewport
+            var vpline = overlay_layer.append("div")
+              .style("background", "rgba(255,0,0,0.1)")
+              .style("position", "absolute")
+              .style("width", columnWidth+"px")
+              .style("height", "1000px")
+              .style("left", function(res) { return x(vp.viewport)+"px" })
+
+            var resline = overlay_layer.append("div")
+              .style("background", "rgba(255,0,0,0.1)")
+              .style("position", "absolute")
+              .style("height", rowHeight+"px")
+              .style("width", "1000px")
+              .style("top", function(res) { return y(vp.resolution)+"px" })
+
+
+            // remove if exists
+            if(vplines.has(vp.viewport)) {
+              vplines.get(vp.viewport).remove();
+            }
+
+            if(reslines.has(vp.resolution)) {
+              reslines.get(vp.resolution).remove();
+            }
+
+            vplines.set(vp.viewport, vpline);
+            reslines.set(vp.resolution, resline);
+
+
+            // set description label
+            d3.select("#details").html(function() {
+              return ""+
+              "<p>"+
+              "<b class='visitors'>"+resolution_totals_map.get(vp.resolution)+"</b> visitors <span class='pct'>(<b>"+(100*resolution_totals_map.get(vp.resolution)/total_visits).toFixed(2)+"%</b>)</span> have a horizontal resolution of <b>"+vp.resolution+"px</b>"+
+              "</p>"+
+              "<p>"+
+              "<b class='visitors'>"+viewport_totals_map.get(vp.viewport)+"</b> visitors <span class='pct'>(<b>"+(100*viewport_totals_map.get(vp.viewport)/total_visits).toFixed(2)+"%</b>)</span> have a viewport between <b>"+vp.viewport+"-"+(vp.viewport+BIN_SIZE)+"px</b>"+
+              "</p>"+
+              "<p>"+
+              "<b class='visitors'>"+vp.frequency+"</b> visitors have this combination (<b>"+(vp.relfreq*100).toFixed(2)+"%</b> of people with this resolution)</b>"+
+              "</p>"
+            });
+
+          })
+          .on("mouseout", function(vp) {
+            if(vplines.has(vp.viewport)) {
+              vplines.get(vp.viewport).remove();
+            }
+            if(reslines.has(vp.resolution)) {
+              reslines.get(vp.resolution).remove();
+            }
+          })
+
+      });
+    }
+    loadGraph("resolutions-and-viewports.uk.csv");
   </script>
 </html>
