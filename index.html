@@ -128,6 +128,32 @@
         var groupByResolution = d3.nest().key(function(e){return e.resolution})
         var groupByViewport = d3.nest().key(function(e){return e.viewport})
         var resolutions = groupByResolution.entries(data);
+
+
+        var totals_before_filtering = resolutions.reduceRight(function(total, e) {
+          return total + d3.sum(e.values.map(function(x) { return x.frequency }));
+        }, 0)
+
+        // filter out rare resolutions
+        resolutions = resolutions.filter(function(e) {
+          return d3.sum(e.values.map(function(x) { return x.frequency }))/totals_before_filtering > 0.001;
+        })
+
+
+        resolution_totals_map = d3.map();
+
+        // count the totals for display on the right
+        resolution_totals = resolutions.map(function(e) {
+          var total = d3.sum(e.values.map(function(x) { return x.frequency }));
+          resolution_totals_map.set(parseInt(e.key), total);
+
+          return {
+            key: parseInt(e.key),
+            value: total
+          }
+        }).sort(function(a,b) { return a.key - b.key });
+
+
         // for debugging
         _data = data;
         _resolutions = resolutions;
@@ -192,20 +218,6 @@
 
         _binnedData = binnedData;
 
-
-        resolution_totals_map = d3.map();
-
-        // count the totals for display on the right
-        resolution_totals = resolutions.map(function(e) {
-          var total = d3.sum(e.values.map(function(x) { return x.frequency }));
-          resolution_totals_map.set(parseInt(e.key), total);
-
-          return {
-            key: parseInt(e.key),
-            value: total
-          }
-        }).sort(function(a,b) { return a.key - b.key });
-
         // sum up the totals for viewports across all resolutions
         viewport_totals_map = _binnedData.reduceRight(function(map,e) {
           return e.values.reduceRight(function(map,e){
@@ -219,7 +231,8 @@
           .map(function(e) { e.key = parseInt(e.key); return e })
           .sort(function(a,b) { return a.key - b.key })
 
-        var total_visits = d3.sum(resolution_totals.map(function(e) { return e.value }));
+        //var total_visits = d3.sum(resolution_totals.map(function(e) { return e.value }));
+        total_visits = totals_before_filtering;
 
 
         // the vertical scale
