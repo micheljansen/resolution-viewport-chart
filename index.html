@@ -244,6 +244,7 @@
           .text(String);
 
         vplabel.transition()
+          .ease("linear").duration(500)
           .style("left", function(e, i) { return x(e)+"px"})
 
         vplabel.exit().remove()
@@ -272,6 +273,7 @@
           })
 
         vptotal.transition()
+          .ease("linear").duration(500)
           .style("left", function(e, i) { return 1+x(e.key)+"px"})
           .style("width", columnWidth-2+"px")
           .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
@@ -288,6 +290,7 @@
           .text(function(e) { return ""+e.key })
 
         reslabel.transition()
+          .ease("linear").duration(500)
           .style("top", function(e,i) { return y(e.key)+"px"})
 
         reslabel.exit().remove();
@@ -313,6 +316,7 @@
           })
 
         restotal.transition()
+          .ease("linear").duration(500)
           .style("top", function(e,i) { return 1+y(e.key)+"px"})
           .style("width", function(e) { return 1+(e.value/total_visits)*8*20+"px" })
           .style("height", rowHeight-2+"px")
@@ -320,31 +324,34 @@
         restotal.exit().remove();
 
 
-        return;
 
         // set up data
 
-        var resdiv = graph.select(".canvas").selectAll("div").data(binnedData)
+        var resdiv = graph.select(".canvas").selectAll("div").data(binnedData, function(e, i) { return (typeof e === "undefined") ? 0 : e.key })
 
         resdiv.enter().append("div")
           .style("position", "absolute")
-          //.style("top", function(e,i) {return e.key+"px"})
+          .style("top", function(e,i) { return y(e.key)+ "px"})
+          .style("height", "10px")
+          .style("width", "1000px")
+
+        resdiv.transition()
+          .ease("linear").duration(500)
           .style("top", function(e,i) { return y(e.key)+ "px"})
 
-        var vpdiv = resdiv.selectAll("div").data(function(d,i) {return d.values; })
+        resdiv.exit().remove();
+
+
+        var vpdiv = resdiv.selectAll("div").data(function(d,i) {return d.values; }, function(e) { return e.viewport })
 
         vpdiv.enter().append("div")
-          //.text(function(e) { console.log(e); return e.viewport;})
           .style("position", "absolute")
-          .style("left", function(e) { return x(e.viewport)+"px"})
-          //.text("x")
           .style("background", function(e) {
             return e.resolution >= e.viewport && e.resolution < e.viewport+BIN_SIZE ? "#006" : "black" })
+          .style("left", function(e) { return x(e.viewport)+"px"})
           .style("width", columnWidth+"px")
-          //.style("height", function(e) { return rowHeight * e.frequency +"px"})
           .style("height", rowHeight+"px")
           .style("opacity", function(e) { return 0.05 + 0.95*e.relfreq })
-          //.on("mouseover", function(e) { console.log(e) })
           .on("mouseover", function(vp) {
             // show a line to indicate the viewport
             var vpline = overlay_layer.append("div")
@@ -398,6 +405,15 @@
               reslines.get(vp.resolution).remove();
             }
           })
+
+        vpdiv.transition()
+          .ease("linear").duration(500)
+          .style("left", function(e) { return x(e.viewport)+"px"})
+          .style("width", columnWidth+"px")
+          .style("height", rowHeight+"px")
+          .style("opacity", function(e) { return 0.05 + 0.95*e.relfreq })
+
+        vpdiv.exit().remove();
 
       });
     }
