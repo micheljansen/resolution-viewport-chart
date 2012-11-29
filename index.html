@@ -9,11 +9,12 @@
       }
       #viewports_resolutions_graph {
         box-model: border-box;
-        width: 800px;
-        height: 600px;
+        width: 760px;
+        height: 580px;
         border: 1px solid #999;
         background: white;
         position: relative;
+        overflow: hidden;
       }
       #loading {
         position: absolute;
@@ -31,13 +32,14 @@
         text-align: right;
       }
       .reslabels, .restotals {
+        top: 30px;
         position: absolute;
         font-size: 10px;
       }
       .restotals {
         left: 700px;
         border-left: 1px solid #bbb;
-        height: 520px;
+        height: 500px;
       }
       .vplabels, .vptotals {
         position: absolute;
@@ -46,7 +48,7 @@
         left: 40px;
       }
       .vptotals {
-        top: 540px;
+        top: 530px;
         width: 660px;
         border-top: 1px solid #bbb;
       }
@@ -58,6 +60,8 @@
         position: relative;
         margin-left: 40px;
         margin-top: 30px;
+        width: 660px;
+        height: 500px;
       }
       #details {
         height: 4em;
