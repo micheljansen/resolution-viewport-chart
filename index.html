@@ -271,7 +271,7 @@
           .style("background", "#999")
           //.style("opacity", function(e) { return e.value/total_visits })
           .style("width", columnWidth-2+"px")
-          .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
+          .style("height", function(e) { return 1+120*(e.value/total_visits)+"px" })
           .on("mouseover", function(e) {
             d3.select(this).style("background", "red");
             d3.select("#details").html(
@@ -289,7 +289,7 @@
           .ease("linear").duration(500)
           .style("left", function(e, i) { return 1+x(e.key)+"px"})
           .style("width", columnWidth-2+"px")
-          .style("height", function(e) { return 1+8*rowHeight*(e.value/total_visits)+"px" })
+          .style("height", function(e) { return 1+120*(e.value/total_visits)+"px" })
 
         vptotal.exit().remove()
 
